@@ -1,4 +1,3 @@
-
 from app.core.security import create_access_token, hash_password
 from app.models.user import User, UserRole
 
@@ -148,14 +147,10 @@ def test_employee_cannot_see_internal_notes(
 
     comments = comments_response.json()
 
-    assert all(
-        comment["is_internal"] is False
-        for comment in comments
-    )
+    assert all(comment["is_internal"] is False for comment in comments)
 
     assert not any(
-        comment["body"] == "Internal diagnostic information."
-        for comment in comments
+        comment["body"] == "Internal diagnostic information." for comment in comments
     )
 
 
@@ -184,9 +179,7 @@ def test_agent_can_see_internal_notes(
 
     assignment = client.patch(
         f"/api/v1/tickets/{ticket['id']}/assign",
-        headers={
-            "Authorization": f"Bearer {create_access_token(str(admin.id))}"
-        },
+        headers={"Authorization": f"Bearer {create_access_token(str(admin.id))}"},
         json={"assignee_id": str(agent.id)},
     )
 

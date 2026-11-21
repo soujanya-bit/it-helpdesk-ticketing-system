@@ -1,16 +1,14 @@
-
 import uuid
-
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum as PyEnum
 from typing import Any
 
 from sqlalchemy import (
+    JSON,
     DateTime,
     Enum,
     ForeignKey,
     Index,
-    JSON,
     Uuid,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -70,17 +68,15 @@ class TicketHistory(Base):
 
     # Type of event, such as status_changed or assigned.
     event_type: Mapped[TicketHistoryEvent] = mapped_column(
-    Enum(
-        TicketHistoryEvent,
-        name="ticket_history_event",
-        native_enum=False,
-        length=30,
-        values_callable=lambda enum_class: [
-            member.value for member in enum_class
-        ],
-    ),
-    nullable=False,
-)
+        Enum(
+            TicketHistoryEvent,
+            name="ticket_history_event",
+            native_enum=False,
+            length=30,
+            values_callable=lambda enum_class: [member.value for member in enum_class],
+        ),
+        nullable=False,
+    )
 
     # Values before the operation.
     old_values: Mapped[dict[str, Any] | None] = mapped_column(
@@ -97,7 +93,7 @@ class TicketHistory(Base):
     # When the event occurred.
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
         nullable=False,
     )
 

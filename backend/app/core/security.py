@@ -1,12 +1,10 @@
-
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import jwt
 from pwdlib import PasswordHash
 
 from app.core.config import settings
-
 
 # Configure Argon2id password hashing.
 password_hasher = PasswordHash.recommended()
@@ -44,12 +42,10 @@ def create_access_token(
     The subject identifies the user associated with the token.
     """
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     if expires_delta is None:
-        expires_delta = timedelta(
-            minutes=settings.access_token_expire_minutes
-        )
+        expires_delta = timedelta(minutes=settings.access_token_expire_minutes)
 
     expire = now + expires_delta
 
@@ -88,6 +84,4 @@ def decode_access_token(token: str) -> dict[str, Any]:
         return payload
 
     except jwt.InvalidTokenError as exc:
-        raise ValueError(
-            "Invalid or expired access token."
-        ) from exc
+        raise ValueError("Invalid or expired access token.") from exc

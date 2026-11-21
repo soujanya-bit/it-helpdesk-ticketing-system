@@ -1,11 +1,9 @@
-
 from collections.abc import Generator
 
 from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import settings
-
 
 # SQLite requires a special connection argument for multi-threaded use.
 connect_args = {}

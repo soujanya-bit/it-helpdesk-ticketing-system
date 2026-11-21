@@ -1,41 +1,46 @@
-
 from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
-from app.schemas.comment import CommentCreate, CommentResponse
-from app.services.comment_service import create_comment, list_comments
 
 from app.api.deps import CurrentUser, require_roles
 from app.db.session import get_db
+from app.models.ticket import TicketPriority, TicketStatus
 from app.models.user import User, UserRole
+from app.schemas.comment import CommentCreate, CommentResponse
 from app.schemas.ticket import (
     TicketAssignment,
     TicketCreate,
+    TicketPriorityUpdate,
     TicketResponse,
-    TicketUpdate,
     TicketStatusUpdate,
-)
-from app.models.ticket import (
-    TicketPriority,
-    TicketStatus,
+    TicketUpdate,
 )
 from app.schemas.ticket_history import TicketHistoryResponse
+from app.services.comment_service import (
+    create_comment,
+    list_comments,
+)
 from app.services.ticket_service import (
     assign_ticket,
     create_ticket,
     get_ticket,
+    get_ticket_history,
     list_tickets,
     update_ticket_details,
+    update_ticket_priority,
     update_ticket_status,
-    get_ticket_history,
 )
-
 
 router = APIRouter()
 
 DatabaseSession = Annotated[Session, Depends(get_db)]
+
+
+# --------------------------------------------------
+# CREATE TICKET
+# --------------------------------------------------
 
 
 @router.post(
@@ -57,6 +62,10 @@ def create_new_ticket(
     )
 
 
+# --------------------------------------------------
+# LIST TICKETS
+# --------------------------------------------------
+
 
 @router.get(
     "/",
@@ -67,15 +76,23 @@ def get_all_tickets(
     current_user: CurrentUser,
     skip: Annotated[int, Query(ge=0)] = 0,
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
-    status_filter: TicketStatus | None = Query(
+    status_filter: TicketStatus | None = Query(  # noqa: B008
         default=None,
         alias="status",
     ),
     priority: TicketPriority | None = None,
-    category: str | None = None,
-    search: str | None = None,
+    category: Annotated[
+        str | None,
+        Query(min_length=1, max_length=100),
+    ] = None,
+    search: Annotated[
+        str | None,
+        Query(min_length=1, max_length=200),
+    ] = None,
     assignee_id: UUID | None = None,
 ):
+    """List tickets with pagination and optional filters."""
+
     try:
         return list_tickets(
             db=db,
@@ -96,6 +113,10 @@ def get_all_tickets(
         ) from None
 
 
+# --------------------------------------------------
+# GET SINGLE TICKET
+# --------------------------------------------------
+
 
 @router.get(
     "/{ticket_id}",
@@ -106,7 +127,7 @@ def get_single_ticket(
     db: DatabaseSession,
     current_user: CurrentUser,
 ):
-    """Retrieve one ticket if the user has permission to view it."""
+    """Retrieve a ticket if the user has permission to view it."""
 
     try:
         return get_ticket(
@@ -122,6 +143,11 @@ def get_single_ticket(
         ) from None
 
 
+# --------------------------------------------------
+# UPDATE TICKET DETAILS
+# --------------------------------------------------
+
+
 @router.patch(
     "/{ticket_id}",
     response_model=TicketResponse,
@@ -135,8 +161,10 @@ def update_existing_ticket(
     """
     Update ticket details.
 
-    Employees can update their own tickets.
-    Agents can update tickets assigned to them.
+    Employees can update their own tickets only when
+    open or waiting for their response.
+
+    Assigned agents can update their tickets.
     Administrators can update any ticket.
     """
 
@@ -159,6 +187,17 @@ def update_existing_ticket(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Ticket not found.",
         ) from None
+
+    except PermissionError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(exc),
+        ) from None
+
+
+# --------------------------------------------------
+# ASSIGN TICKET
+# --------------------------------------------------
 
 
 @router.patch(
@@ -202,6 +241,12 @@ def assign_existing_ticket(
             detail=str(exc),
         ) from None
 
+
+# --------------------------------------------------
+# UPDATE TICKET STATUS
+# --------------------------------------------------
+
+
 @router.patch(
     "/{ticket_id}/status",
     response_model=TicketResponse,
@@ -212,11 +257,11 @@ def change_ticket_status(
     db: DatabaseSession,
     current_user: Annotated[
         User,
-        Depends(
-            require_roles(UserRole.AGENT, UserRole.ADMIN)
-        ),
+        Depends(require_roles(UserRole.AGENT, UserRole.ADMIN)),
     ],
 ):
+    """Change ticket status. Agents and administrators only."""
+
     try:
         ticket = get_ticket(
             db=db,
@@ -243,6 +288,59 @@ def change_ticket_status(
             detail=str(exc),
         ) from None
 
+
+# --------------------------------------------------
+# UPDATE TICKET PRIORITY
+# --------------------------------------------------
+
+
+@router.patch(
+    "/{ticket_id}/priority",
+    response_model=TicketResponse,
+)
+def change_ticket_priority(
+    ticket_id: UUID,
+    priority_data: TicketPriorityUpdate,
+    db: DatabaseSession,
+    current_user: Annotated[
+        User,
+        Depends(require_roles(UserRole.AGENT, UserRole.ADMIN)),
+    ],
+):
+    """Change ticket priority. Agents and administrators only."""
+
+    try:
+        ticket = get_ticket(
+            db=db,
+            ticket_id=ticket_id,
+            current_user=current_user,
+        )
+
+        return update_ticket_priority(
+            db=db,
+            ticket=ticket,
+            new_priority=priority_data.priority,
+            actor=current_user,
+        )
+
+    except LookupError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Ticket not found.",
+        ) from None
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from None
+
+
+# --------------------------------------------------
+# TICKET HISTORY
+# --------------------------------------------------
+
+
 @router.get(
     "/{ticket_id}/history",
     response_model=list[TicketHistoryResponse],
@@ -252,8 +350,9 @@ def read_ticket_history(
     db: DatabaseSession,
     current_user: CurrentUser,
 ):
+    """Retrieve ticket history after checking access."""
+
     try:
-        # Verify that the current user can access this ticket.
         get_ticket(
             db=db,
             ticket_id=ticket_id,
@@ -271,6 +370,12 @@ def read_ticket_history(
             detail="Ticket not found.",
         ) from None
 
+
+# --------------------------------------------------
+# ADD PUBLIC COMMENT
+# --------------------------------------------------
+
+
 @router.post(
     "/{ticket_id}/comments",
     response_model=CommentResponse,
@@ -282,6 +387,8 @@ def add_ticket_comment(
     db: DatabaseSession,
     current_user: CurrentUser,
 ):
+    """Add a public comment to a ticket."""
+
     try:
         ticket = get_ticket(
             db=db,
@@ -304,6 +411,11 @@ def add_ticket_comment(
         ) from None
 
 
+# --------------------------------------------------
+# LIST COMMENTS
+# --------------------------------------------------
+
+
 @router.get(
     "/{ticket_id}/comments",
     response_model=list[CommentResponse],
@@ -313,6 +425,8 @@ def read_ticket_comments(
     db: DatabaseSession,
     current_user: CurrentUser,
 ):
+    """Retrieve comments visible to the authenticated user."""
+
     try:
         ticket = get_ticket(
             db=db,
@@ -332,6 +446,12 @@ def read_ticket_comments(
             detail="Ticket not found.",
         ) from None
 
+
+# --------------------------------------------------
+# ADD INTERNAL NOTE
+# --------------------------------------------------
+
+
 @router.post(
     "/{ticket_id}/internal-notes",
     response_model=CommentResponse,
@@ -343,11 +463,11 @@ def add_internal_note(
     db: DatabaseSession,
     current_user: Annotated[
         User,
-        Depends(
-            require_roles(UserRole.AGENT, UserRole.ADMIN)
-        ),
+        Depends(require_roles(UserRole.AGENT, UserRole.ADMIN)),
     ],
 ):
+    """Add an internal note. Agents and administrators only."""
+
     try:
         ticket = get_ticket(
             db=db,

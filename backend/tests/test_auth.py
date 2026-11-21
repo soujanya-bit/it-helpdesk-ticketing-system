@@ -1,4 +1,3 @@
-
 def test_register_user_success(client):
     response = client.post(
         "/api/v1/auth/register",

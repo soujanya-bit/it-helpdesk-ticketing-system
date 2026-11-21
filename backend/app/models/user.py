@@ -1,11 +1,8 @@
-
 import uuid
-
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum as PyEnum
 
-from sqlalchemy import Boolean, DateTime, Enum, String
-from sqlalchemy import Uuid
+from sqlalchemy import Boolean, DateTime, Enum, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -57,18 +54,16 @@ class User(Base):
 
     # Determines the user's permissions within the application.
     role: Mapped[UserRole] = mapped_column(
-    Enum(
-        UserRole,
-        name="user_role",
-        native_enum=False,
-        length=20,
-        values_callable=lambda enum_class: [
-            member.value for member in enum_class
-        ],
-    ),
-    default=UserRole.EMPLOYEE,
-    nullable=False,
-)
+        Enum(
+            UserRole,
+            name="user_role",
+            native_enum=False,
+            length=20,
+            values_callable=lambda enum_class: [member.value for member in enum_class],
+        ),
+        default=UserRole.EMPLOYEE,
+        nullable=False,
+    )
 
     # Allows administrators to deactivate accounts.
     is_active: Mapped[bool] = mapped_column(
@@ -80,21 +75,17 @@ class User(Base):
     # Account creation timestamp.
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
         nullable=False,
     )
 
     # Automatically updated when the user record changes.
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
-        onupdate=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
         nullable=False,
     )
 
     def __repr__(self) -> str:
-        return (
-            f"<User(id={self.id}, "
-            f"email='{self.email}', "
-            f"role='{self.role.value}')>"
-        )
+        return f"<User(id={self.id}, email='{self.email}', role='{self.role.value}')>"

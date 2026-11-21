@@ -1,7 +1,5 @@
-
 from sqlalchemy import MetaData
 from sqlalchemy.orm import DeclarativeBase
-
 
 # Consistent names for database constraints and indexes.
 NAMING_CONVENTION = {
@@ -21,6 +19,4 @@ class Base(DeclarativeBase):
     SQLAlchemy uses its metadata to discover and manage tables.
     """
 
-    metadata = MetaData(
-        naming_convention=NAMING_CONVENTION
-    )
+    metadata = MetaData(naming_convention=NAMING_CONVENTION)

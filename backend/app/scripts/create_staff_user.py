@@ -1,4 +1,3 @@
-
 from getpass import getpass
 
 from sqlalchemy import select
@@ -53,9 +52,7 @@ def create_staff_user() -> None:
     db = SessionLocal()
 
     try:
-        existing_user = db.scalar(
-            select(User).where(User.email == email)
-        )
+        existing_user = db.scalar(select(User).where(User.email == email))
 
         if existing_user:
             print("An account with this email already exists.")

@@ -1,16 +1,13 @@
-
 import pytest
-
 from fastapi.testclient import TestClient
-
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from app.main import app
+from app import models  # noqa: F401
 from app.db.base import Base
 from app.db.session import get_db
-from app import models  # noqa: F401
+from app.main import app
 
 
 @pytest.fixture

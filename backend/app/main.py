@@ -1,11 +1,9 @@
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.endpoints.auth import router as auth_router
 from app.api.v1.endpoints.tickets import router as tickets_router
 from app.core.config import settings
-
 
 # Create the FastAPI application.
 app = FastAPI(

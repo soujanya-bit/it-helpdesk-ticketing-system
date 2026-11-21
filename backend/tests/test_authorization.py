@@ -1,4 +1,3 @@
-
 from app.core.security import create_access_token, hash_password
 from app.models.user import User, UserRole
 
@@ -55,9 +54,7 @@ def create_employee_and_ticket(client, email):
 
     ticket_response = client.post(
         "/api/v1/tickets/",
-        headers={
-            "Authorization": f"Bearer {employee_token}"
-        },
+        headers={"Authorization": f"Bearer {employee_token}"},
         json={
             "subject": "Test laptop issue",
             "description": "Laptop is not starting properly.",
@@ -95,9 +92,7 @@ def test_employee_cannot_assign_ticket(client, db_session):
 
     response = client.patch(
         f"/api/v1/tickets/{ticket['id']}/assign",
-        headers={
-            "Authorization": f"Bearer {employee_token}"
-        },
+        headers={"Authorization": f"Bearer {employee_token}"},
         json={
             "assignee_id": str(agent.id),
         },
@@ -126,9 +121,7 @@ def test_agent_cannot_assign_ticket(client, db_session):
 
     response = client.patch(
         f"/api/v1/tickets/{ticket['id']}/assign",
-        headers={
-            "Authorization": f"Bearer {get_token(agent)}"
-        },
+        headers={"Authorization": f"Bearer {get_token(agent)}"},
         json={
             "assignee_id": str(another_agent.id),
         },
@@ -157,9 +150,7 @@ def test_admin_can_assign_ticket(client, db_session):
 
     response = client.patch(
         f"/api/v1/tickets/{ticket['id']}/assign",
-        headers={
-            "Authorization": f"Bearer {get_token(admin)}"
-        },
+        headers={"Authorization": f"Bearer {get_token(admin)}"},
         json={
             "assignee_id": str(agent.id),
         },
@@ -193,9 +184,7 @@ def test_assigned_agent_can_change_ticket_status(
     # Administrator assigns the ticket.
     assignment = client.patch(
         f"/api/v1/tickets/{ticket['id']}/assign",
-        headers={
-            "Authorization": f"Bearer {get_token(admin)}"
-        },
+        headers={"Authorization": f"Bearer {get_token(admin)}"},
         json={
             "assignee_id": str(agent.id),
         },
@@ -206,9 +195,7 @@ def test_assigned_agent_can_change_ticket_status(
     # Assigned agent moves the ticket to in_progress.
     response = client.patch(
         f"/api/v1/tickets/{ticket['id']}/status",
-        headers={
-            "Authorization": f"Bearer {get_token(agent)}"
-        },
+        headers={"Authorization": f"Bearer {get_token(agent)}"},
         json={
             "status": "in_progress",
         },

@@ -1,4 +1,3 @@
-
 def register_and_login(
     client,
     email: str,
@@ -29,6 +28,7 @@ def register_and_login(
 
     return login.json()["access_token"]
 
+
 def create_ticket(client, token: str, subject: str):
     """Create a ticket using the supplied access token."""
 
@@ -42,6 +42,7 @@ def create_ticket(client, token: str, subject: str):
             "priority": "high",
         },
     )
+
 
 def test_create_ticket_success(client):
     token = register_and_login(
@@ -66,6 +67,7 @@ def test_create_ticket_success(client):
     assert data["status"] == "open"
     assert data["assignee_id"] is None
 
+
 def test_employee_can_view_own_ticket(client):
     token = register_and_login(
         client,
@@ -88,6 +90,7 @@ def test_employee_can_view_own_ticket(client):
 
     assert response.status_code == 200
     assert response.json()["id"] == ticket_id
+
 
 def test_employee_cannot_view_another_employees_ticket(client):
     token_one = register_and_login(
@@ -117,6 +120,7 @@ def test_employee_cannot_view_another_employees_ticket(client):
 
     assert response.status_code == 404
 
+
 def test_unauthenticated_user_cannot_create_ticket(client):
     response = client.post(
         "/api/v1/tickets/",
@@ -129,6 +133,7 @@ def test_unauthenticated_user_cannot_create_ticket(client):
     )
 
     assert response.status_code == 401
+
 
 def test_employee_can_only_see_own_tickets(client):
     token_one = register_and_login(

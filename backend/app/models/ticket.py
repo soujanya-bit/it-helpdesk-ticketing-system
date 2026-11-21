@@ -1,7 +1,5 @@
-
 import uuid
-
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum as PyEnum
 
 from sqlalchemy import (
@@ -98,9 +96,7 @@ class Ticket(Base):
             name="ticket_status",
             native_enum=False,
             length=30,
-            values_callable=lambda enum_class: [
-                member.value for member in enum_class
-            ],
+            values_callable=lambda enum_class: [member.value for member in enum_class],
         ),
         default=TicketStatus.OPEN,
         nullable=False,
@@ -113,9 +109,7 @@ class Ticket(Base):
             name="ticket_priority",
             native_enum=False,
             length=20,
-            values_callable=lambda enum_class: [
-                member.value for member in enum_class
-            ],
+            values_callable=lambda enum_class: [member.value for member in enum_class],
         ),
         default=TicketPriority.NORMAL,
         nullable=False,
@@ -124,15 +118,15 @@ class Ticket(Base):
     # Ticket creation timestamp.
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
         nullable=False,
     )
 
     # Automatically updated when the ticket changes.
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
-        onupdate=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
         nullable=False,
     )
 

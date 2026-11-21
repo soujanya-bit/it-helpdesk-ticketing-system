@@ -1,4 +1,3 @@
-
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -20,7 +19,6 @@ from app.schemas.user import (
     UserResponse,
 )
 
-
 router = APIRouter()
 
 
@@ -41,9 +39,7 @@ def register_user(
     """
 
     # Check whether the email is already registered.
-    existing_user = db.scalar(
-        select(User).where(User.email == user_data.email)
-    )
+    existing_user = db.scalar(select(User).where(User.email == user_data.email))
 
     if existing_user:
         raise HTTPException(
@@ -92,9 +88,7 @@ def login_user(
     """
 
     # Find the account using the supplied email address.
-    user = db.scalar(
-        select(User).where(User.email == form_data.username)
-    )
+    user = db.scalar(select(User).where(User.email == form_data.username))
 
     # Use a generic error message to avoid revealing
     # whether an email address is registered.
@@ -115,9 +109,7 @@ def login_user(
         )
 
     # Create a JWT containing the user's UUID.
-    access_token = create_access_token(
-        subject=str(user.id)
-    )
+    access_token = create_access_token(subject=str(user.id))
 
     return TokenResponse(
         access_token=access_token,

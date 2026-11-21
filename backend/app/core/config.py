@@ -1,10 +1,8 @@
-
 from functools import lru_cache
 from pathlib import Path
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
 
 # Project root: helpdesk-system/
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
