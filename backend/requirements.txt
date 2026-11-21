@@ -1,0 +1,26 @@
+
+# Web framework
+fastapi
+uvicorn[standard]
+
+# Validation and configuration
+pydantic
+pydantic-settings
+email-validator
+
+# Database
+sqlalchemy
+alembic
+
+# Authentication and security
+PyJWT
+pwdlib[argon2]
+
+# Testing
+pytest
+httpx
+
+# Code quality
+ruff
+python-dotenv
+python-multipart
