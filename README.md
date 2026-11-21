@@ -62,7 +62,7 @@ helpdesk-system/
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/it-helpdesk-ticketing-system.git
+git clone [https://github.com/soujanya-bit/it-helpdesk-ticketing-system/blob/main/README.md]
 cd it-helpdesk-ticketing-system
 ```
 
