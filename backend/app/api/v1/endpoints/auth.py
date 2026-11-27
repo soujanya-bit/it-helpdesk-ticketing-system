@@ -1,3 +1,4 @@
+
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -6,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.api.deps import get_current_user, require_roles
 from app.core.security import (
     create_access_token,
     hash_password,
@@ -21,7 +23,6 @@ from app.schemas.user import (
 
 router = APIRouter()
 
-
 DatabaseSession = Annotated[Session, Depends(get_db)]
 
 
@@ -34,12 +35,11 @@ def register_user(
     user_data: UserCreate,
     db: DatabaseSession,
 ):
-    """
-    Register a new employee account.
-    """
+    """Register a new employee account."""
 
-    # Check whether the email is already registered.
-    existing_user = db.scalar(select(User).where(User.email == user_data.email))
+    existing_user = db.scalar(
+        select(User).where(User.email == user_data.email)
+    )
 
     if existing_user:
         raise HTTPException(
@@ -47,7 +47,6 @@ def register_user(
             detail="An account with this email already exists.",
         )
 
-    # Create a new user.
     new_user = User(
         email=str(user_data.email),
         full_name=user_data.full_name,
@@ -87,11 +86,10 @@ def login_user(
     The OAuth2 form field named 'username' receives the user's email.
     """
 
-    # Find the account using the supplied email address.
-    user = db.scalar(select(User).where(User.email == form_data.username))
+    user = db.scalar(
+        select(User).where(User.email == form_data.username)
+    )
 
-    # Use a generic error message to avoid revealing
-    # whether an email address is registered.
     if user is None or not verify_password(
         form_data.password,
         user.password_hash,
@@ -108,10 +106,43 @@ def login_user(
             detail="This account has been deactivated.",
         )
 
-    # Create a JWT containing the user's UUID.
     access_token = create_access_token(subject=str(user.id))
 
     return TokenResponse(
         access_token=access_token,
         token_type="bearer",
     )
+
+
+@router.get("/me", response_model=UserResponse)
+def get_me(
+    current_user: User = Depends(get_current_user),
+):
+    """Return the currently authenticated user."""
+
+    return current_user
+
+
+@router.get(
+    "/agents",
+    response_model=list[UserResponse],
+)
+def get_agents(
+    db: DatabaseSession,
+    current_user: Annotated[
+        User,
+        Depends(require_roles(UserRole.ADMIN)),
+    ],
+):
+    """Return all active agent accounts. Administrators only."""
+
+    agents = db.scalars(
+        select(User)
+        .where(
+            User.role == UserRole.AGENT,
+            User.is_active.is_(True),
+        )
+        .order_by(User.full_name)
+    ).all()
+
+    return agents
